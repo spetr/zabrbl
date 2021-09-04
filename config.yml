@@ -1,0 +1,32 @@
+rbl:
+  ipv4:
+    - bl.0spam.org
+    - 0spam.fusionzero.com
+    - bl.rbl.polspam.pl
+    - bl-h1.rbl.polspam.pl
+    - bl-h2.rbl.polspam.pl
+    - bl-h3.rbl.polspam.pl
+    - bl-h4.rbl.polspam.pl
+    - cnkr.rbl.polspam.pl
+    - dyn.rbl.polspam.pl
+    - lblip4.rbl.polspam.pl
+    - rblip4.rbl.polspam.pl
+    - rbl.rbldns.ru
+    - dnsbl.sorbs.net
+    - bl.spamcop.net
+    - pbl.spamhaus.org
+    - sbl.spamhaus.org
+    - xbl.spamhaus.org
+    - auth.spamrats.com
+    - dyna.spamrats.com
+    - noptr.spamrats.com
+    - spam.spamrats.com
+    - dnsbl-0.uceprotect.net
+    - dnsbl-1.uceprotect.net
+    - dnsbl-2.uceprotect.net
+    - dnsbl-3.uceprotect.net
+    - rf.senderbase.org
+    - geobl.spameatingmonkey.net
+ip:
+  - 37.205.10.101
+  - 195.250.142.220/30
