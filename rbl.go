@@ -7,7 +7,9 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/miekg/dns"
 	"gopkg.in/yaml.v2"
 )
 
@@ -36,22 +38,55 @@ func rblQuery(ip net.IP, rbl string) (r *Result) {
 		Rbl:    rbl,
 	}
 	regexpResponse, _ := regexp.Compile(`^127\.0\.0\.*`)
-	res, _ := net.LookupHost(lookup)
-	if len(res) > 0 {
-		for i := range res {
-			if regexpResponse.MatchString(res[i]) {
-				r.Listed = true
+
+	c := &dns.Client{
+		DialTimeout: time.Millisecond * 1500,
+	}
+
+	m := &dns.Msg{
+		MsgHdr: dns.MsgHdr{
+			RecursionDesired: true,
+		},
+		Compress: true,
+	}
+
+	m.SetQuestion(dns.Fqdn(lookup), dns.TypeA)
+	dnsResponse, _, err := c.Exchange(m, "1.1.1.1:53")
+	if err != nil {
+		logger.Error(err.Error())
+		return
+	}
+
+	if dnsResponse.Rcode == dns.RcodeSuccess {
+		for i := range dnsResponse.Answer {
+			if a, ok := dnsResponse.Answer[i].(*dns.A); ok {
+				if regexpResponse.MatchString(a.A.String()) {
+					r.Listed = true
+					break
+				}
 			}
 		}
-		txt, _ := net.LookupTXT(lookup)
-		if len(txt) > 0 {
-			r.Text = strings.Join(txt, "")
+	}
+	if r.Listed {
+		m.SetQuestion(dns.Fqdn(lookup), dns.TypeTXT)
+		dnsResponse, _, err := c.Exchange(m, "8.8.8.8:53")
+		if err != nil {
+			logger.Error(err.Error())
+			return
 		}
-		if r.Listed {
-			reportWriteLine(ip, r.Rbl, r.Text)
+		if dnsResponse.Rcode == dns.RcodeSuccess {
+			for i := range dnsResponse.Answer {
+				if a, ok := dnsResponse.Answer[i].(*dns.TXT); ok {
+					r.Text = strings.Join(a.Txt, " ")
+					break
+				}
+			}
 		}
 	}
-	return r
+	if r.Listed {
+		reportWriteLine(ip, r.Rbl, r.Text)
+	}
+	return
 }
 
 func rblLookup(rblList []string, ip net.IP) (res *RBLResults) {
