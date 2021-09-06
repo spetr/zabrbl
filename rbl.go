@@ -41,12 +41,14 @@ func rblQuery(ip net.IP, rbl string) (r *Result) {
 		for i := range res {
 			if regexpResponse.MatchString(res[i]) {
 				r.Listed = true
-				reportWriteLine(ip, rbl)
 			}
 		}
 		txt, _ := net.LookupTXT(lookup)
 		if len(txt) > 0 {
 			r.Text = strings.Join(txt, "")
+		}
+		if r.Listed {
+			reportWriteLine(ip, r.Rbl, r.Text)
 		}
 	}
 	return r

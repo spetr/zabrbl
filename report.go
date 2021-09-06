@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-func reportWriteLine(ip net.IP, rbl string) {
+func reportWriteLine(ip net.IP, rbl string, comment string) {
 	if len(*flagReport) == 0 {
 		return
 	}
@@ -16,7 +16,7 @@ func reportWriteLine(ip net.IP, rbl string) {
 		return
 	}
 	defer f.Close()
-	_, err = f.WriteString(fmt.Sprintf("\"%s\",\"%s\"\n", ip.String(), rbl))
+	_, err = f.WriteString(fmt.Sprintf("\"%s\",\"%s\",\"%s\"\n", ip.String(), rbl, comment))
 	if err != nil {
 		logger.Error(err.Error())
 		return
