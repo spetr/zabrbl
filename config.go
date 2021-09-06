@@ -9,6 +9,12 @@ import (
 )
 
 var conf struct {
+	Rescan int `yaml:"rescan"`
+	Zabbix struct {
+		Server  string `yaml:"server"`
+		Active  bool   `yaml:"active"`
+		Trapper bool   `yaml:"trapper"`
+	} `yaml:"zabbix"`
 	RBL struct {
 		IPv4 []string `yaml:"ipv4"`
 	} `yaml:"rbl"`

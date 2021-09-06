@@ -1,14 +1,11 @@
 package main
 
 import (
-	"encoding/binary"
 	"flag"
-	"fmt"
 	"log"
-	"net"
+	"os"
 
 	"github.com/kardianos/service"
-	"gopkg.in/yaml.v2"
 )
 
 type program struct {
@@ -16,7 +13,9 @@ type program struct {
 }
 
 var (
-	logger service.Logger
+	logger      service.Logger
+	flagService *string
+	flagReport  *string
 )
 
 func (p *program) Start(s service.Service) error {
@@ -26,30 +25,11 @@ func (p *program) Start(s service.Service) error {
 		logger.Info("Running under service manager.")
 	}
 	p.exit = make(chan struct{})
+	ConfLoad()
 	go func() {
-		ConfLoad()
-		for i := range conf.IP {
-			// Single IP
-			if ip := net.ParseIP(conf.IP[i]); ip != nil {
-				r := rblLookup(conf.RBL.IPv4, ip)
-				x, _ := yaml.Marshal(r)
-				fmt.Println(string(x))
-				continue
-			}
-			// CIDR
-			if _, cidr, err := net.ParseCIDR(conf.IP[i]); err == nil {
-				mask := binary.BigEndian.Uint32(cidr.Mask)
-				start := binary.BigEndian.Uint32(cidr.IP)
-				finish := (start & mask) | (mask ^ 0xffffffff)
-				for i := start; i <= finish; i++ {
-					ip := make(net.IP, 4)
-					binary.BigEndian.PutUint32(ip, i)
-					r := rblLookup(conf.RBL.IPv4, ip)
-					x, _ := yaml.Marshal(r)
-					fmt.Println(string(x))
-				}
-				continue
-			}
+		rblLookupList(conf.RBL.IPv4, conf.IP)
+		if len(*flagReport) != 0 {
+			os.Exit(1)
 		}
 	}()
 	return nil
@@ -61,10 +41,13 @@ func (p *program) Stop(s service.Service) error {
 	return nil
 }
 
-func main() {
-	svcFlag := flag.String("service", "", "Control the system service.")
+func init() {
+	flagService = flag.String("service", "", "Control the system service.")
+	flagReport = flag.String("report", "", "Report file (CSV format).")
 	flag.Parse()
+}
 
+func main() {
 	options := make(service.KeyValue)
 	options["Restart"] = "on-success"
 	options["SuccessExitStatus"] = "1 2 8 SIGKILL"
@@ -98,14 +81,15 @@ func main() {
 		}
 	}()
 
-	if len(*svcFlag) != 0 {
-		err := service.Control(s, *svcFlag)
+	if len(*flagService) != 0 {
+		err := service.Control(s, *flagService)
 		if err != nil {
 			log.Printf("Valid actions: %q\n", service.ControlAction)
 			log.Fatal(err)
 		}
 		return
 	}
+
 	err = s.Run()
 	if err != nil {
 		logger.Error(err)

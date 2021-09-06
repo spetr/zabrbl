@@ -1,11 +1,14 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"net"
 	"regexp"
 	"strings"
 	"sync"
+
+	"gopkg.in/yaml.v2"
 )
 
 type RBLResults struct {
@@ -19,7 +22,7 @@ type Result struct {
 	Text   string `json:"text,omitempty" yaml:"text,omitempty"`
 }
 
-func rblQuery(rbl string, ip net.IP) (r *Result) {
+func rblQuery(ip net.IP, rbl string) (r *Result) {
 
 	// Reverse IPv4 address
 	splitAddress := strings.Split(ip.String(), ".")
@@ -35,9 +38,10 @@ func rblQuery(rbl string, ip net.IP) (r *Result) {
 	regexpResponse, _ := regexp.Compile(`^127\.0\.0\.*`)
 	res, _ := net.LookupHost(lookup)
 	if len(res) > 0 {
-		for _, ip := range res {
-			if regexpResponse.MatchString(ip) {
+		for i := range res {
+			if regexpResponse.MatchString(res[i]) {
 				r.Listed = true
+				reportWriteLine(ip, rbl)
 			}
 		}
 		txt, _ := net.LookupTXT(lookup)
@@ -59,10 +63,36 @@ func rblLookup(rblList []string, ip net.IP) (res *RBLResults) {
 			defer func() {
 				wg.Done()
 			}()
-			r := rblQuery(rblList[i], ip)
+			r := rblQuery(ip, rblList[i])
 			res.Results = append(res.Results, r)
 		}(&wg, i)
 	}
 	wg.Wait()
 	return res
+}
+
+func rblLookupList(rblList []string, ip []string) {
+	for i := range ip {
+		// Single IP
+		if ip := net.ParseIP(ip[i]); ip != nil {
+			r := rblLookup(rblList, ip)
+			x, _ := yaml.Marshal(r)
+			fmt.Println(string(x))
+			continue
+		}
+		// CIDR
+		if _, cidr, err := net.ParseCIDR(ip[i]); err == nil {
+			mask := binary.BigEndian.Uint32(cidr.Mask)
+			start := binary.BigEndian.Uint32(cidr.IP)
+			finish := (start & mask) | (mask ^ 0xffffffff)
+			for i := start; i <= finish; i++ {
+				ip := make(net.IP, 4)
+				binary.BigEndian.PutUint32(ip, i)
+				r := rblLookup(rblList, ip)
+				x, _ := yaml.Marshal(r)
+				fmt.Println(string(x))
+			}
+			continue
+		}
+	}
 }
