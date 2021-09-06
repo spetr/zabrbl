@@ -21,7 +21,7 @@ var conf struct {
 	IP []string `yaml:"ip"`
 }
 
-func ConfLoad() {
+func confLoad() {
 	c, err := ioutil.ReadFile("config.yml")
 	if err != nil {
 		fmt.Println(err)

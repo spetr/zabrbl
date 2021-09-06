@@ -25,7 +25,7 @@ func (p *program) Start(s service.Service) error {
 		logger.Info("Running under service manager.")
 	}
 	p.exit = make(chan struct{})
-	ConfLoad()
+	confLoad()
 	go func() {
 		rblLookupList(conf.RBL.IPv4, conf.IP)
 		if len(*flagReport) != 0 {

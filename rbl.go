@@ -13,20 +13,22 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type RBLResults struct {
-	IP      net.IP    `json:"ip" yaml:"ip"`
-	Results []*Result `json:"results" yaml:"results"`
-}
+type (
+	rblStatus struct {
+		IP      net.IP       `json:"ip" yaml:"ip"`
+		Results []*rblResult `json:"results" yaml:"results"`
+	}
 
-type Result struct {
-	Rbl    string `json:"rbl" yaml:"rbl"`
-	Listed bool   `json:"listed" yaml:"listed"`
-	Text   string `json:"text,omitempty" yaml:"text,omitempty"`
-}
+	rblResult struct {
+		Rbl    string `json:"rbl" yaml:"rbl"`
+		Listed bool   `json:"listed" yaml:"listed"`
+		Text   string `json:"text,omitempty" yaml:"text,omitempty"`
+	}
+)
 
-func rblLookup(ip net.IP, rblList []string) (res *RBLResults) {
+func rblLookup(ip net.IP, rblList []string) (res *rblStatus) {
 	var wg sync.WaitGroup
-	res = &RBLResults{
+	res = &rblStatus{
 		IP: ip,
 	}
 	for i := range rblList {
@@ -43,7 +45,7 @@ func rblLookup(ip net.IP, rblList []string) (res *RBLResults) {
 			}
 
 			lookup := fmt.Sprintf("%s.%s", strings.Join(splitAddress, "."), rblList[i])
-			r := &Result{
+			r := &rblResult{
 				Listed: false,
 				Rbl:    rblList[i],
 			}
