@@ -54,10 +54,9 @@ func rblQuery(ip net.IP, rbl string) (r *Result) {
 	dnsResponse, _, err := c.Exchange(m, "1.1.1.1:53")
 	if err != nil {
 		logger.Error(err.Error())
-		return
 	}
 
-	if dnsResponse.Rcode == dns.RcodeSuccess {
+	if dnsResponse != nil && dnsResponse.Rcode == dns.RcodeSuccess {
 		for i := range dnsResponse.Answer {
 			if a, ok := dnsResponse.Answer[i].(*dns.A); ok {
 				if regexpResponse.MatchString(a.A.String()) {
@@ -67,14 +66,14 @@ func rblQuery(ip net.IP, rbl string) (r *Result) {
 			}
 		}
 	}
+
 	if r.Listed {
 		m.SetQuestion(dns.Fqdn(lookup), dns.TypeTXT)
 		dnsResponse, _, err := c.Exchange(m, "8.8.8.8:53")
 		if err != nil {
 			logger.Error(err.Error())
-			return
 		}
-		if dnsResponse.Rcode == dns.RcodeSuccess {
+		if dnsResponse != nil && dnsResponse.Rcode == dns.RcodeSuccess {
 			for i := range dnsResponse.Answer {
 				if a, ok := dnsResponse.Answer[i].(*dns.TXT); ok {
 					r.Text = strings.Join(a.Txt, " ")
@@ -82,10 +81,9 @@ func rblQuery(ip net.IP, rbl string) (r *Result) {
 				}
 			}
 		}
-	}
-	if r.Listed {
 		reportWriteLine(ip, r.Rbl, r.Text)
 	}
+
 	return
 }
 
